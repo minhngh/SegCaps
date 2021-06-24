@@ -57,7 +57,7 @@ def get_callbacks(arguments):
         monitor_name = 'val_dice_hard'
 
     csv_logger = CSVLogger(join(arguments.log_dir, arguments.output_name + '_log_' + arguments.time + '.csv'), separator=',')
-    tb = TensorBoard(arguments.tf_log_dir, batch_size=arguments.batch_size, histogram_freq=0)
+    tb = TensorBoard(arguments.tf_log_dir, histogram_freq=0)
     model_checkpoint = ModelCheckpoint(join(arguments.check_dir, arguments.output_name + '_model_' + arguments.time + '.hdf5'),
                                        monitor=monitor_name, save_best_only=True, save_weights_only=True,
                                        verbose=1, mode='max')
@@ -68,7 +68,7 @@ def get_callbacks(arguments):
 
 def compile_model(args, net_input_shape, uncomp_model):
     # Set optimizer loss and metrics
-    opt = Adam(lr=args.initial_lr, beta_1=0.99, beta_2=0.999, decay=1e-6)
+    opt = Adam(learning_rate=args.initial_lr, beta_1=0.99, beta_2=0.999, decay=1e-6)
     if args.net.find('caps') != -1:
         metrics = {'out_seg': dice_hard}
     else:
@@ -141,7 +141,7 @@ def train(args, train_list, val_list, u_model, net_input_shape):
                                batchSize=args.batch_size, numSlices=args.slices, subSampAmt=args.subsamp,
                                stride=args.stride, shuff=args.shuffle_data, aug_data=args.aug_data),
         max_queue_size=40, workers=4, use_multiprocessing=False,
-        steps_per_epoch=10000,
+        steps_per_epoch=10000 // args.batch_size,
         validation_data=generate_val_batches(args.data_root_dir, val_list, net_input_shape, net=args.net,
                                              batchSize=args.batch_size,  numSlices=args.slices, subSampAmt=0,
                                              stride=20, shuff=args.shuffle_data),

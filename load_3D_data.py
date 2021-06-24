@@ -380,38 +380,23 @@ def generate_val_batches(root_path, val_list, net_input_shape, net, batchSize=1,
                     continue
                 else:
                     print('\nFinished making npz file.')
-
-            if numSlices == 1:
-                subSampAmt = 0
-            elif subSampAmt == -1 and numSlices > 1:
-                np.random.seed(None)
-                subSampAmt = int(rand(1)*(val_img.shape[2]*0.05))
-
-            indicies = np.arange(0, val_img.shape[2] - numSlices * (subSampAmt + 1) + 1, stride)
-            if shuff:
-                shuffle(indicies)
-
-            for j in indicies:
-                if not np.any(val_mask[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]):
-                    continue
-                if img_batch.ndim == 4:
-                    img_batch[count, :, :, :] = val_img[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-                    mask_batch[count, :, :, :] = val_mask[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-                elif img_batch.ndim == 5:
-                    # Assumes img and mask are single channel. Replace 0 with : if multi-channel.
-                    img_batch[count, :, :, :, 0] = val_img[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-                    mask_batch[count, :, :, :, 0] = val_mask[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
+            if img_batch.ndim == 4:
+                img_batch[count, :, :, :] = val_img[..., None]
+                mask_batch[count, :, :, :] = val_mask[..., None]
+            elif img_batch.ndim == 5:
+                # Assumes img and mask are single channel. Replace 0 with : if multi-channel.
+                img_batch[count, :, :, :, 0] = val_img[..., None]
+                mask_batch[count, :, :, :, 0] = val_mask[..., None]
+            else:
+                print('Error this function currently only supports 2D and 3D data.')
+                exit(0)   
+            count += 1
+            if count % batchSize == 0:
+                count = 0
+                if net.find('caps') != -1:
+                    yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch])
                 else:
-                    print('Error this function currently only supports 2D and 3D data.')
-                    exit(0)
-
-                count += 1
-                if count % batchSize == 0:
-                    count = 0
-                    if net.find('caps') != -1:
-                        yield ([img_batch, mask_batch], [mask_batch, mask_batch * img_batch])
-                    else:
-                        yield (img_batch, mask_batch)
+                    yield (img_batch, mask_batch)
 
         if count != 0:
             if net.find('caps') != -1:
@@ -419,6 +404,7 @@ def generate_val_batches(root_path, val_list, net_input_shape, net, batchSize=1,
                        [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...]])
             else:
                 yield (img_batch[:count,...], mask_batch[:count,...])
+
 
 @threadsafe_generator
 def generate_test_batches(root_path, test_list, net_input_shape, batchSize=1, numSlices=1, subSampAmt=0,
@@ -440,27 +426,19 @@ def generate_test_batches(root_path, test_list, net_input_shape, batchSize=1, nu
             else:
                 print('\nFinished making npz file.')
 
-        if numSlices == 1:
-            subSampAmt = 0
-        elif subSampAmt == -1 and numSlices > 1:
-            np.random.seed(None)
-            subSampAmt = int(rand(1)*(test_img.shape[2]*0.05))
+        if img_batch.ndim == 4:
+            img_batch[count, :, :, :] = test_img[..., None]
+        elif img_batch.ndim == 5:
+            # Assumes img and mask are single channel. Replace 0 with : if multi-channel.
+            img_batch[count, :, :, :, 0] = test_img[..., None]
+        else:
+            print('Error this function currently only supports 2D and 3D data.')
+            exit(0)
 
-        indicies = np.arange(0, test_img.shape[2] - numSlices * (subSampAmt + 1) + 1, stride)
-        for j in indicies:
-            if img_batch.ndim == 4:
-                img_batch[count, :, :, :] = test_img[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-            elif img_batch.ndim == 5:
-                # Assumes img and mask are single channel. Replace 0 with : if multi-channel.
-                img_batch[count, :, :, :, 0] = test_img[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-            else:
-                print('Error this function currently only supports 2D and 3D data.')
-                exit(0)
-
-            count += 1
-            if count % batchSize == 0:
-                count = 0
-                yield (img_batch)
+        count += 1
+        if count % batchSize == 0:
+            count = 0
+            yield (img_batch)
 
     if count != 0:
         yield (img_batch[:count,:,:,:])
