@@ -18,11 +18,11 @@ plt.ioff()
 from os.path import join
 import numpy as np
 
-from keras.optimizers import Adam
-from keras import backend as K
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import backend as K
 K.set_image_data_format('channels_last')
-from keras.utils.training_utils import multi_gpu_model
-from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau, TensorBoard
+from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
+from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau, TensorBoard
 import tensorflow as tf
 
 from custom_losses import dice_hard, weighted_binary_crossentropy_loss, dice_loss, margin_loss
@@ -136,7 +136,7 @@ def train(args, train_list, val_list, u_model, net_input_shape):
     callbacks = get_callbacks(args)
 
     # Training the network
-    history = model.fit_generator(
+    history = model.fit(
         generate_train_batches(args.data_root_dir, train_list, net_input_shape, net=args.net,
                                batchSize=args.batch_size, numSlices=args.slices, subSampAmt=args.subsamp,
                                stride=args.stride, shuff=args.shuffle_data, aug_data=args.aug_data),

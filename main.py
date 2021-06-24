@@ -19,7 +19,6 @@ import SimpleITK as sitk
 from time import gmtime, strftime
 time = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
 
-from keras.utils import print_summary
 
 from load_3D_data import load_data, split_data
 from model_helper import create_model
@@ -38,12 +37,12 @@ def main(args):
         train_list, val_list, test_list = load_data(args.data_root_dir, args.split_num)
 
     # Get image properties from first image. Assume they are all the same.
-    img_shape = sitk.GetArrayFromImage(sitk.ReadImage(join(args.data_root_dir, 'imgs', train_list[0][0]))).shape
+    img_shape = (1,) + sitk.GetArrayFromImage(sitk.ReadImage(join(args.data_root_dir, 'imgs', train_list[0][0]))).shape
     net_input_shape = (img_shape[1], img_shape[2], args.slices)
 
     # Create the model for training/testing/manipulation
     model_list = create_model(args=args, input_shape=net_input_shape)
-    print_summary(model=model_list[0], positions=[.38, .65, .75, 1.])
+    print(model_list[0].summary())
 
     args.output_name = 'split-' + str(args.split_num) + '_batch-' + str(args.batch_size) + \
                        '_shuff-' + str(args.shuffle_data) + '_aug-' + str(args.aug_data) + \

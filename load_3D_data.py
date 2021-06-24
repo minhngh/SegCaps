@@ -29,7 +29,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.ioff()
 
-from keras.preprocessing.image import *
+from tensorflow.keras.preprocessing.image import *
 
 from custom_data_aug import elastic_transform, salt_pepper_noise
 
@@ -37,11 +37,11 @@ debug = 0
 
 def load_data(root, split):
     # Load the training and testing lists
-    with open(join(root, 'split_lists', 'train_split_' + str(split) + '.csv'), 'rb') as f:
+    with open(join(root, 'split_lists', 'train_split_' + str(split) + '.csv'), 'r') as f:
         reader = csv.reader(f)
         training_list = list(reader)
 
-    with open(join(root, 'split_lists', 'test_split_' + str(split) + '.csv'), 'rb') as f:
+    with open(join(root, 'split_lists', 'test_split_' + str(split) + '.csv'), 'r') as f:
         reader = csv.reader(f)
         testing_list = list(reader)
 
@@ -88,7 +88,7 @@ def load_class_weights(root, split):
 
 def split_data(root_path, num_splits=4):
     mask_list = []
-    for ext in ('*.mhd', '*.hdr', '*.nii'):
+    for ext in ('*.mhd', '*.hdr', '*.nii', '*.png'):
         mask_list.extend(sorted(glob(join(root_path,'masks',ext))))
 
     assert len(mask_list) != 0, 'Unable to find any files in {}'.format(join(root_path,'masks'))
@@ -102,11 +102,11 @@ def split_data(root_path, num_splits=4):
     kf = KFold(n_splits=num_splits)
     n = 0
     for train_index, test_index in kf.split(mask_list):
-        with open(join(outdir,'train_split_' + str(n) + '.csv'), 'wb') as csvfile:
+        with open(join(outdir,'train_split_' + str(n) + '.csv'), 'w') as csvfile:
             writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for i in train_index:
                 writer.writerow([basename(mask_list[i])])
-        with open(join(outdir,'test_split_' + str(n) + '.csv'), 'wb') as csvfile:
+        with open(join(outdir,'test_split_' + str(n) + '.csv'), 'w') as csvfile:
             writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for i in test_index:
                 writer.writerow([basename(mask_list[i])])
@@ -128,8 +128,8 @@ def convert_data_to_numpy(root_path, img_name, no_masks=False, overwrite=False):
     except:
         pass
 
-    ct_min = -1024
-    ct_max = 3072
+    ct_min = 0
+    ct_max = 255
 
     if not overwrite:
         try:
@@ -141,7 +141,7 @@ def convert_data_to_numpy(root_path, img_name, no_masks=False, overwrite=False):
     try:
         itk_img = sitk.ReadImage(join(img_path, img_name))
         img = sitk.GetArrayFromImage(itk_img)
-        img = np.rollaxis(img, 0, 3)
+        # img = np.rollaxis(img, 0, 3)
         img = img.astype(np.float32)
         img[img > ct_max] = ct_max
         img[img < ct_min] = ct_min
@@ -151,44 +151,44 @@ def convert_data_to_numpy(root_path, img_name, no_masks=False, overwrite=False):
         if not no_masks:
             itk_mask = sitk.ReadImage(join(mask_path, img_name))
             mask = sitk.GetArrayFromImage(itk_mask)
-            mask = np.rollaxis(mask, 0, 3)
+            # mask = np.rollaxis(mask, 0, 3)
             mask[mask > 250] = 1 # In case using 255 instead of 1
             mask[mask > 4.5] = 0 # Trachea = 5
             mask[mask >= 1] = 1 # Left lung = 3, Right lung = 4
             mask[mask != 1] = 0 # Non-Lung/Background
             mask = mask.astype(np.uint8)
 
-        try:
-            f, ax = plt.subplots(1, 3, figsize=(15, 5))
+        # try:
+        #     f, ax = plt.subplots(1, 3, figsize=(15, 5))
 
-            ax[0].imshow(img[:, :, img.shape[2] // 3], cmap='gray')
-            if not no_masks:
-                ax[0].imshow(mask[:, :, img.shape[2] // 3], alpha=0.15)
-            ax[0].set_title('Slice {}/{}'.format(img.shape[2] // 3, img.shape[2]))
-            ax[0].axis('off')
+        #     ax[0].imshow(img[:, :, img.shape[2] // 3], cmap='gray')
+        #     if not no_masks:
+        #         ax[0].imshow(mask[:, :, img.shape[2] // 3], alpha=0.15)
+        #     ax[0].set_title('Slice {}/{}'.format(img.shape[2] // 3, img.shape[2]))
+        #     ax[0].axis('off')
 
-            ax[1].imshow(img[:, :, img.shape[2] // 2], cmap='gray')
-            if not no_masks:
-                ax[1].imshow(mask[:, :, img.shape[2] // 2], alpha=0.15)
-            ax[1].set_title('Slice {}/{}'.format(img.shape[2] // 2, img.shape[2]))
-            ax[1].axis('off')
+        #     ax[1].imshow(img[:, :, img.shape[2] // 2], cmap='gray')
+        #     if not no_masks:
+        #         ax[1].imshow(mask[:, :, img.shape[2] // 2], alpha=0.15)
+        #     ax[1].set_title('Slice {}/{}'.format(img.shape[2] // 2, img.shape[2]))
+        #     ax[1].axis('off')
 
-            ax[2].imshow(img[:, :, img.shape[2] // 2 + img.shape[2] // 4], cmap='gray')
-            if not no_masks:
-                ax[2].imshow(mask[:, :, img.shape[2] // 2 + img.shape[2] // 4], alpha=0.15)
-            ax[2].set_title('Slice {}/{}'.format(img.shape[2] // 2 + img.shape[2] // 4, img.shape[2]))
-            ax[2].axis('off')
+        #     ax[2].imshow(img[:, :, img.shape[2] // 2 + img.shape[2] // 4], cmap='gray')
+        #     if not no_masks:
+        #         ax[2].imshow(mask[:, :, img.shape[2] // 2 + img.shape[2] // 4], alpha=0.15)
+        #     ax[2].set_title('Slice {}/{}'.format(img.shape[2] // 2 + img.shape[2] // 4, img.shape[2]))
+        #     ax[2].axis('off')
 
-            fig = plt.gcf()
-            fig.suptitle(fname)
+        #     fig = plt.gcf()
+        #     fig.suptitle(fname)
 
-            plt.savefig(join(fig_path, fname + '.png'), format='png', bbox_inches='tight')
-            plt.close(fig)
-        except Exception as e:
-            print('\n'+'-'*100)
-            print('Error creating qualitative figure for {}'.format(fname))
-            print(e)
-            print('-'*100+'\n')
+        #     plt.savefig(join(fig_path, fname + '.png'), format='png', bbox_inches='tight')
+        #     plt.close(fig)
+        # except Exception as e:
+        #     print('\n'+'-'*100)
+        #     print('Error creating qualitative figure for {}'.format(fname))
+        #     print(e)
+        #     print('-'*100+'\n')
 
         if not no_masks:
             np.savez_compressed(join(numpy_path, fname + '.npz'), img=img, mask=mask)
@@ -278,9 +278,9 @@ class threadsafe_iter:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         with self.lock:
-            return self.it.next()
+            return self.it.__next__()
 
 
 def threadsafe_generator(f):
@@ -301,6 +301,7 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
         if shuff:
             shuffle(train_list)
         count = 0
+
         for i, scan_name in enumerate(train_list):
             try:
                 scan_name = scan_name[0]
@@ -315,50 +316,35 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
                     continue
                 else:
                     print('\nFinished making npz file.')
-
-            if numSlices == 1:
-                subSampAmt = 0
-            elif subSampAmt == -1 and numSlices > 1:
-                np.random.seed(None)
-                subSampAmt = int(rand(1)*(train_img.shape[2]*0.05))
-
-            indicies = np.arange(0, train_img.shape[2] - numSlices * (subSampAmt + 1) + 1, stride)
-            if shuff:
-                shuffle(indicies)
-
-            for j in indicies:
-                if not np.any(train_mask[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]):
-                    continue
-                if img_batch.ndim == 4:
-                    img_batch[count, :, :, :] = train_img[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-                    mask_batch[count, :, :, :] = train_mask[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-                elif img_batch.ndim == 5:
-                    # Assumes img and mask are single channel. Replace 0 with : if multi-channel.
-                    img_batch[count, :, :, :, 0] = train_img[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
-                    mask_batch[count, :, :, :, 0] = train_mask[:, :, j:j + numSlices * (subSampAmt+1):subSampAmt+1]
+            if img_batch.ndim == 4:
+                img_batch[count, :, :, :] = train_img[..., None]
+                mask_batch[count, :, :, :] = train_mask[..., None]
+            elif img_batch.ndim == 5:
+                # Assumes img and mask are single channel. Replace 0 with : if multi-channel.
+                img_batch[count, :, :, :, 0] = train_img[..., None]
+                mask_batch[count, :, :, :, 0] = train_mask[..., None]
+            else:
+                print('Error this function currently only supports 2D and 3D data.')
+                exit(0)   
+            count += 1
+            if count % batchSize == 0:
+                count = 0
+                if aug_data:
+                    img_batch, mask_batch = augmentImages(img_batch, mask_batch)
+                if debug:
+                    if img_batch.ndim == 4:
+                        plt.imshow(np.squeeze(img_batch[0, :, :, 0]), cmap='gray')
+                        plt.imshow(np.squeeze(mask_batch[0, :, :, 0]), alpha=0.15)
+                    elif img_batch.ndim == 5:
+                        plt.imshow(np.squeeze(img_batch[0, :, :, 0, 0]), cmap='gray')
+                        plt.imshow(np.squeeze(mask_batch[0, :, :, 0, 0]), alpha=0.15)
+                    plt.savefig(join(root_path, 'logs', 'ex_train.png'), format='png', bbox_inches='tight')
+                    plt.close()
+                if net.find('caps') != -1:
+                    yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch])
                 else:
-                    print('Error this function currently only supports 2D and 3D data.')
-                    exit(0)
-
-                count += 1
-                if count % batchSize == 0:
-                    count = 0
-                    if aug_data:
-                        img_batch, mask_batch = augmentImages(img_batch, mask_batch)
-                    if debug:
-                        if img_batch.ndim == 4:
-                            plt.imshow(np.squeeze(img_batch[0, :, :, 0]), cmap='gray')
-                            plt.imshow(np.squeeze(mask_batch[0, :, :, 0]), alpha=0.15)
-                        elif img_batch.ndim == 5:
-                            plt.imshow(np.squeeze(img_batch[0, :, :, 0, 0]), cmap='gray')
-                            plt.imshow(np.squeeze(mask_batch[0, :, :, 0, 0]), alpha=0.15)
-                        plt.savefig(join(root_path, 'logs', 'ex_train.png'), format='png', bbox_inches='tight')
-                        plt.close()
-                    if net.find('caps') != -1:
-                        yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch])
-                    else:
-                        yield (img_batch, mask_batch)
-
+                    yield (img_batch, mask_batch)
+           
         if count != 0:
             if aug_data:
                 img_batch[:count,...], mask_batch[:count,...] = augmentImages(img_batch[:count,...],

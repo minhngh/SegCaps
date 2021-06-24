@@ -47,15 +47,15 @@ def dice_soft(y_true, y_pred, loss_type='sorensen', axis=[1,2,3], smooth=1e-5, f
         # transform back to logits
         _epsilon = tf.convert_to_tensor(1e-7, y_pred.dtype.base_dtype)
         y_pred = tf.clip_by_value(y_pred, _epsilon, 1 - _epsilon)
-        y_pred = tf.log(y_pred / (1 - y_pred))
+        y_pred = tf.math.log(y_pred / (1 - y_pred))
 
     inse = tf.reduce_sum(y_pred * y_true, axis=axis)
     if loss_type == 'jaccard':
-        l = tf.reduce_sum(y_pred * y_pred, axis=axis)
-        r = tf.reduce_sum(y_true * y_true, axis=axis)
+        l = tf.math.reduce_sum(y_pred * y_pred, axis=axis)
+        r = tf.math.reduce_sum(y_true * y_true, axis=axis)
     elif loss_type == 'sorensen':
-        l = tf.reduce_sum(y_pred, axis=axis)
-        r = tf.reduce_sum(y_true, axis=axis)
+        l = tf.math.reduce_sum(y_pred, axis=axis)
+        r = tf.math.reduce_sum(y_true, axis=axis)
     else:
         raise Exception("Unknow loss_type")
     ## old axis=[0,1,2,3]
@@ -65,7 +65,7 @@ def dice_soft(y_true, y_pred, loss_type='sorensen', axis=[1,2,3], smooth=1e-5, f
     ## new haodong
     dice = (2. * inse + smooth) / (l + r + smooth)
     ##
-    dice = tf.reduce_mean(dice)
+    dice = tf.math.reduce_mean(dice)
     return dice
 
 
@@ -94,8 +94,8 @@ def dice_hard(y_true, y_pred, threshold=0.5, axis=[1,2,3], smooth=1e-5):
     y_pred = tf.cast(y_pred > threshold, dtype=tf.float32)
     y_true = tf.cast(y_true > threshold, dtype=tf.float32)
     inse = tf.reduce_sum(tf.multiply(y_pred, y_true), axis=axis)
-    l = tf.reduce_sum(y_pred, axis=axis)
-    r = tf.reduce_sum(y_true, axis=axis)
+    l = tf.math.reduce_sum(y_pred, axis=axis)
+    r = tf.math.reduce_sum(y_true, axis=axis)
     ## old axis=[0,1,2,3]
     # hard_dice = 2 * (inse) / (l + r)
     # epsilon = 1e-5
@@ -103,7 +103,7 @@ def dice_hard(y_true, y_pred, threshold=0.5, axis=[1,2,3], smooth=1e-5):
     ## new haodong
     hard_dice = (2. * inse + smooth) / (l + r + smooth)
     ##
-    hard_dice = tf.reduce_mean(hard_dice)
+    hard_dice = tf.math.reduce_mean(hard_dice)
     return hard_dice
 
 
@@ -129,9 +129,9 @@ def weighted_binary_crossentropy_loss(pos_weight):
             # transform back to logits
             _epsilon = tf.convert_to_tensor(1e-7, output.dtype.base_dtype)
             output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
-            output = tf.log(output / (1 - output))
-
-        return tf.nn.weighted_cross_entropy_with_logits(targets=target,
+            output = tf.math.log(output / (1 - output))
+        target = tf.cast(target, tf.float32)
+        return tf.nn.weighted_cross_entropy_with_logits(labels=target,
                                                        logits=output,
                                                         pos_weight=pos_weight)
     return weighted_binary_crossentropy
