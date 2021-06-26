@@ -17,6 +17,7 @@ from os import environ
 import argparse
 import SimpleITK as sitk
 from time import gmtime, strftime
+from tensorflow.keras.utils import plot_model
 time = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
 
 
@@ -43,7 +44,7 @@ def main(args):
     # Create the model for training/testing/manipulation
     model_list = create_model(args=args, input_shape=net_input_shape)
     print(model_list[0].summary())
-
+    plot_model(model_list[0], show_shapes=True)
     args.output_name = 'split-' + str(args.split_num) + '_batch-' + str(args.batch_size) + \
                        '_shuff-' + str(args.shuffle_data) + '_aug-' + str(args.aug_data) + \
                        '_loss-' + str(args.loss) + '_slic-' + str(args.slices) + \

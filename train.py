@@ -79,6 +79,9 @@ def compile_model(args, net_input_shape, uncomp_model):
 
     # If using CPU or single GPU
     if args.gpus <= 1:
+        print(loss)
+        print(loss_weighting)
+        print(metrics)
         uncomp_model.compile(optimizer=opt, loss=loss, loss_weights=loss_weighting, metrics=metrics)
         return uncomp_model
     # If using multiple GPUs

@@ -157,20 +157,16 @@ def convert_data_to_numpy(root_path, img_name, no_masks=False, overwrite=False):
         img = sitk.GetArrayFromImage(itk_img)
         # img = np.rollaxis(img, 0, 3)
         img = img.astype(np.float32)
-        img[img > ct_max] = ct_max
-        img[img < ct_min] = ct_min
-        img += -ct_min
         img /= (ct_max + -ct_min)
 
         if not no_masks:
             itk_mask = sitk.ReadImage(join(mask_path, img_name))
             mask = sitk.GetArrayFromImage(itk_mask)
             # mask = np.rollaxis(mask, 0, 3)
-            mask[mask > 250] = 1 # In case using 255 instead of 1
-            mask[mask > 4.5] = 0 # Trachea = 5
-            mask[mask >= 1] = 1 # Left lung = 3, Right lung = 4
-            mask[mask != 1] = 0 # Non-Lung/Background
+            mask[mask > 0] = 1 # In case using 255 instead of 1
+            mask[mask < 1] = 0 # Trachea = 5
             mask = mask.astype(np.uint8)
+
 
         # try:
         #     f, ax = plt.subplots(1, 3, figsize=(15, 5))
@@ -360,7 +356,6 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
                     plt.savefig(join(root_path, 'logs', 'ex_train.png'), format='png', bbox_inches='tight')
                     plt.close()
                 if net.find('caps') != -1:
-                    print('dajhgsdgsfgdsfjgjshdfgsdhfgkdf')
                     yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch])
                 else:
                     yield (img_batch, mask_batch)
