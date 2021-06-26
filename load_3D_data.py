@@ -23,6 +23,7 @@ from numpy.random import rand, shuffle
 import SimpleITK as sitk
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import cv2 as cv
 import albumentations as A
 
 import matplotlib
@@ -41,13 +42,12 @@ transforms = A.Compose([
         A.RandomContrast(),
         A.RandomGamma(),
         A.RandomBrightness(),
-        ], p=0.3),
+        ], p = 0.4),
     A.OneOf([
-        A.ElasticTransform(alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
-        A.GridDistortion(),
-        A.OpticalDistortion(distort_limit=2, shift_limit=0.5),
-        ], p=0.3),
-    A.ShiftScaleRotate()
+        A.Blur(blur_limit = 5), 
+        A.MedianBlur(blur_limit = 5)
+    ], p = 0.3),
+    A.ShiftScaleRotate(shift_limit = 0.01, rotate_limit = 15, border_mode = cv.BORDER_CONSTANT)
 ])
 def load_data(root, split):
     # Load the training and testing lists
@@ -311,6 +311,7 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
     # Create placeholders for training
     img_batch = np.zeros((np.concatenate(((batchSize,), net_input_shape))), dtype=np.float32)
     mask_batch = np.zeros((np.concatenate(((batchSize,), net_input_shape))), dtype=np.uint8)
+    lb_batch = np.zeros((batchSize, 1, 1, 1))
 
     while True:
         if shuff:
@@ -341,6 +342,10 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
             else:
                 print('Error this function currently only supports 2D and 3D data.')
                 exit(0)   
+            if np.sum((train_mask > 0).astype(np.float32)) > 10:
+                lb_batch[count, 0, 0, 0] = 1
+            else:
+                lb_batch[count, 0, 0, 0] = 0
             count += 1
             if count % batchSize == 0:
                 count = 0
@@ -356,7 +361,7 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
                     plt.savefig(join(root_path, 'logs', 'ex_train.png'), format='png', bbox_inches='tight')
                     plt.close()
                 if net.find('caps') != -1:
-                    yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch])
+                    yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch, lb_batch])
                 else:
                     yield (img_batch, mask_batch)
            
@@ -366,7 +371,7 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
                                                                               mask_batch[:count,...])
             if net.find('caps') != -1:
                 yield ([img_batch[:count, ...], mask_batch[:count, ...]],
-                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...]])
+                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...], lb_batch])
             else:
                 yield (img_batch[:count,...], mask_batch[:count,...])
 
@@ -376,7 +381,7 @@ def generate_val_batches(root_path, val_list, net_input_shape, net, batchSize=1,
     # Create placeholders for validation
     img_batch = np.zeros((np.concatenate(((batchSize,), net_input_shape))), dtype=np.float32)
     mask_batch = np.zeros((np.concatenate(((batchSize,), net_input_shape))), dtype=np.uint8)
-
+    lb_batch = np.zeros((batchSize, 1, 1, 1))
     while True:
         if shuff:
             shuffle(val_list)
@@ -405,18 +410,22 @@ def generate_val_batches(root_path, val_list, net_input_shape, net, batchSize=1,
             else:
                 print('Error this function currently only supports 2D and 3D data.')
                 exit(0)   
+            if np.sum((val_mask > 0).astype(np.float32)) > 10:
+                lb_batch[count, 0, 0, 0] = 1
+            else:
+                lb_batch[count, 0, 0, 0] = 0
             count += 1
             if count % batchSize == 0:
                 count = 0
                 if net.find('caps') != -1:
-                    yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch])
+                    yield ([img_batch, mask_batch], [mask_batch, mask_batch*img_batch,lb_batch])
                 else:
                     yield (img_batch, mask_batch)
 
         if count != 0:
             if net.find('caps') != -1:
                 yield ([img_batch[:count, ...], mask_batch[:count, ...]],
-                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...]])
+                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...],lb_batch])
             else:
                 yield (img_batch[:count,...], mask_batch[:count,...])
 

@@ -168,3 +168,7 @@ def margin_loss(margin=0.4, downweight=0.5, pos_weight=1.0):
 
     return _margin_loss
 
+def acc_score(y_true, y_pred, threshold = 0.5):
+    y_pred = tf.cast(y_pred > threshold, tf.float32)
+    acc = tf.cast(y_true == y_pred, tf.float32)
+    return tf.math.reduce_mean(acc)

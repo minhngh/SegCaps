@@ -7,7 +7,7 @@ If you have any questions, please email me at lalonde@knights.ucf.edu.
 
 This file contains the network definitions for the various capsule network architectures.
 '''
-
+import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras import backend as K
 K.set_image_data_format('channels_last')
@@ -48,6 +48,9 @@ def CapsNetR3(input_shape, n_class=2):
     # Layer 4: Convolutional Capsule
     conv_cap_4_1 = ConvCapsuleLayer(kernel_size=5, num_capsule=8, num_atoms=32, strides=1, padding='same',
                                     routings=3, name='conv_cap_4_1')(conv_cap_3_2)
+    conv_cap_5_prob = ConvCapsuleLayer(kernel_size=32, num_capsule=1, num_atoms=8, strides=1, padding='valid',
+                                    routings=3)(conv_cap_4_1)
+    out_prob = tf.keras.layers.Lambda(lambda x: tf.norm(x, axis = -1), name = 'out_prob')(conv_cap_5_prob)
 
     # Layer 1 Up: Deconvolutional Capsule
     deconv_cap_1_1 = DeconvCapsuleLayer(kernel_size=4, num_capsule=8, num_atoms=32, upsamp_type='deconv',
@@ -109,8 +112,8 @@ def CapsNetR3(input_shape, n_class=2):
         return out_recon
 
     # Models for training and evaluation (prediction)
-    train_model = models.Model(inputs=[x, y], outputs=[out_seg, shared_decoder(masked_by_y)])
-    eval_model = models.Model(inputs=x, outputs=[out_seg, shared_decoder(masked)])
+    train_model = models.Model(inputs=[x, y], outputs=[out_seg, shared_decoder(masked_by_y), out_prob])
+    eval_model = models.Model(inputs=x, outputs=[out_seg, shared_decoder(masked), out_prob])
 
     # manipulate model
     noise = layers.Input(shape=((H, W, C, A)))

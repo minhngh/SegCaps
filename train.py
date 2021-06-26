@@ -25,7 +25,7 @@ from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau, TensorBoard
 import tensorflow as tf
 
-from custom_losses import dice_hard, weighted_binary_crossentropy_loss, dice_loss, margin_loss
+from custom_losses import dice_hard, weighted_binary_crossentropy_loss, dice_loss, margin_loss, acc_score
 from load_3D_data import load_class_weights, generate_train_batches, generate_val_batches
 
 
@@ -46,7 +46,7 @@ def get_loss(root, split, net, recon_wei, choice):
         raise Exception("Unknow loss_type")
 
     if net.find('caps') != -1:
-        return {'out_seg': loss, 'out_recon': 'mse'}, {'out_seg': 1., 'out_recon': recon_wei}
+        return {'out_seg': loss, 'out_recon': 'mse', 'out_prob': margin_loss()}, {'out_seg': 1., 'out_recon': recon_wei, 'out_prob': 4}
     else:
         return loss, None
 
@@ -70,7 +70,7 @@ def compile_model(args, net_input_shape, uncomp_model):
     # Set optimizer loss and metrics
     opt = Adam(learning_rate=args.initial_lr, beta_1=0.99, beta_2=0.999, decay=1e-6)
     if args.net.find('caps') != -1:
-        metrics = {'out_seg': dice_hard}
+        metrics = {'out_seg': dice_hard, 'out_prob': acc_score}
     else:
         metrics = [dice_hard]
 
