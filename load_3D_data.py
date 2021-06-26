@@ -371,7 +371,7 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
                                                                               mask_batch[:count,...])
             if net.find('caps') != -1:
                 yield ([img_batch[:count, ...], mask_batch[:count, ...]],
-                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...], lb_batch])
+                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...], lb_batch[:count]])
             else:
                 yield (img_batch[:count,...], mask_batch[:count,...])
 
@@ -425,7 +425,7 @@ def generate_val_batches(root_path, val_list, net_input_shape, net, batchSize=1,
         if count != 0:
             if net.find('caps') != -1:
                 yield ([img_batch[:count, ...], mask_batch[:count, ...]],
-                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...],lb_batch])
+                       [mask_batch[:count, ...], mask_batch[:count, ...] * img_batch[:count, ...],lb_batch[:count]])
             else:
                 yield (img_batch[:count,...], mask_batch[:count,...])
 
