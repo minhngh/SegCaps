@@ -152,7 +152,7 @@ if __name__ == '__main__':
                         help='Number of GPUs you have available for training. '
                              'If entering specific GPU ids under the --which_gpus arg or if using CPU, '
                              'then this number will be inferred, else this argument must be included.')
-
+    parser.add_argument('--checkpoint', type = str, default = '')
     arguments = parser.parse_args()
 
     #

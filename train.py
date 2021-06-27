@@ -14,7 +14,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.ioff()
-
+from os.path import exists
 from os.path import join
 import numpy as np
 
@@ -79,9 +79,6 @@ def compile_model(args, net_input_shape, uncomp_model):
 
     # If using CPU or single GPU
     if args.gpus <= 1:
-        print(loss)
-        print(loss_weighting)
-        print(metrics)
         uncomp_model.compile(optimizer=opt, loss=loss, loss_weights=loss_weighting, metrics=metrics)
         return uncomp_model
     # If using multiple GPUs
@@ -134,7 +131,14 @@ def plot_training(training_history, arguments):
 
 def train(args, train_list, val_list, u_model, net_input_shape):
     # Compile the loaded model
+    if args.checkpoint != '':
+        if exists(args.checkpoint):
+            u_model.load_weights(args.checkpoint)
+            print('Loaded checkpoint successfully!!!')
+        else:
+            print('File of checkpoint isn"t found')
     model = compile_model(args=args, net_input_shape=net_input_shape, uncomp_model=u_model)
+    
     # Set the callbacks
     callbacks = get_callbacks(args)
 
